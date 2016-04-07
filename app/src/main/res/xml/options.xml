@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:defaultValue="50"
+        android:inputType="number"
+        android:key="soundVolume"
+        android:summary="@string/optionSoundDetails"
+        android:title="@string/optionSound" />
+    <!--<CheckBoxPreference-->
+    <!--android:defaultValue="true"-->
+    <!--android:key="useVibrations"-->
+    <!--android:title="@string/optionVibrations"-->
+    <!--android:summary="@string/optionVibrationsDetails">-->
+    <!--</CheckBoxPreference>-->
+    <!--<EditTextPreference-->
+    <!--android:key="tempTime"-->
+    <!--android:inputType="number">-->
+    <!--</EditTextPreference>-->
+    <!--<EditTextPreference-->
+    <!--android:key="tempTime2"-->
+    <!--android:inputType="number">-->
+    <!--</EditTextPreference>-->
+    <!--<CheckBoxPreference-->
+    <!--android:key="playerTurn"-->
+    <!--android:defaultValue="true">-->
+    <!--</CheckBoxPreference>-->
+    <!--<EditTextPreference-->
+    <!--android:key="fen"-->
+    <!--android:inputType="text">-->
+    <!--</EditTextPreference>-->
+    <!--</PreferenceCategory>-->
+    <!--<PreferenceCategory android:title="@string/optionCategoryLineNumbers">-->
+    <ListPreference
+        android:defaultValue="@string/optionLineNumberValues_OnlyIfBigEnough"
+        android:entries="@array/lineNumberOptions"
+        android:entryValues="@array/lineNumberValues"
+        android:key="showLineNumbers"
+        android:summary="@string/optionLineNumbersSummary"
+        android:title="@string/optionLineNumbers" />
+    <!--</PreferenceCategory>-->
+    <!--<PreferenceCategory-->
+    <!--android:title="@string/optionCategoryTime">-->
+    <!--<ListPreference-->
+    <!--android:defaultValue="@string/timeValuesThirtyMin"-->
+    <!--android:key="gameTime"-->
+    <!--android:entries="@array/timeOptions"-->
+    <!--android:entryValues="@array/timeValues"-->
+    <!--android:title="@string/optionTimes"-->
+    <!--android:summary="@string/optionTimesSummary"-->
+    <!-->-->
+    <!--</ListPreference>-->
+    <!--</PreferenceCategory>-->
+    <!--<PreferenceCategory android:title="@string/optionCategoryReset">-->
+    <Preference
+        android:key="reset"
+        android:summary="@string/optionResetDetails"
+        android:title="@string/optionReset" />
+</PreferenceScreen>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			  android:orientation="vertical"
+			  android:layout_width="match_parent"
+			  android:layout_height="match_parent"
+			  android:background="#d5d2d2"
+              android:layout_centerInParent="true"
+              android:soundEffectsEnabled="true"
+              android:id="@+id/playlayout">
+    <TextView android:layout_width="match_parent"
+              android:id="@+id/player2"
+              android:layout_height="wrap_content"
+              android:background="@drawable/back"
+              android:textColor="#423f3b"
+              android:textSize="35sp"
+              android:text=""
+              android:gravity="center"
+              android:layout_margin="4dp"/>
+
+	<conyashka.chess.board.Board
+			android:id="@+id/board"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+            android:background="@drawable/plank"
+            android:layout_margin="4dp"
+            android:layout_gravity="center_horizontal"
+            android:soundEffectsEnabled="true"
+			/>
+
+	<TextView android:layout_width="match_parent"
+              android:id="@+id/player1"
+              android:layout_height="wrap_content"
+              android:background="@drawable/back2"
+              android:textColor="#423f3b"
+              android:textSize="35sp"
+              android:text=""
+              android:gravity="center"
+              android:layout_margin="4dp"/>
+
+
+</LinearLayout>

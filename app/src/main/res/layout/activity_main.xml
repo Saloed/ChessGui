@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/tiles_background"
+    android:orientation="vertical">
+
+    <ImageView
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="center"
+        android:layout_margin="20dp"
+        android:src="@drawable/knight"
+        android:contentDescription="@string/main_window_image" />
+
+
+    <Button
+        android:id="@+id/button_play"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="30dp"
+        android:background="@drawable/backboxmain"
+        android:text="@string/buttonPlay"
+        android:textColor="#423f3b"
+        android:height="40dp" />
+
+    <Button
+        android:id="@+id/button_load"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="30dp"
+        android:background="@drawable/backboxmain"
+        android:text="@string/buttonLoad"
+        android:textColor="#423f3b"
+        android:height="40dp" />
+
+    <Button
+        android:id="@+id/button_options"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="30dp"
+        android:background="@drawable/backboxmain"
+        android:text="@string/buttonOptions"
+        android:textColor="#423f3b"
+        android:height="40dp" />
+</LinearLayout>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">New Life Chess</string>
+    <string name="app_nameshort">Chess</string>
+    <string name="options">Chess - Options</string>
+    <string name="load">Your Saved Games</string>
+    <string name="buttonPlay">Play</string>
+    <string name="buttonOptions">Options</string>
+
+    <string name="mainMenu">Main menu</string>
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+
+    <string name="promote">Promotion</string>
+    <string name="promoteQueen">Queen</string>
+    <string name="promoteKnight">Knight</string>
+    <string name="promoteRook">Rook</string>
+    <string name="promoteBishop">Bishop</string>
+
+    <string name="optionReset">Reset</string>
+    <string name="optionResetDetails">Delete all saved games</string>
+    <string name="confirm">Are you sure?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="optionCategoryTime">Clock</string>
+    <string name="optionCategoryFeedback">Sound and vibrations</string>
+    <string name="optionCategoryColorBlind">Colorblind mode</string>
+    <string name="optionCategoryReset">Reset</string>
+    <string name="optionSound">Volume</string>
+    <string name="optionSoundDetails">Set volume of sound effects (0 – 100)</string>
+    <string name="optionCategoryLineNumbers">Board Coordinates</string>
+    <string name="optionLineNumbers">Coordinates</string>
+    <string name="optionLineNumbersSummary">Select whether or not coordinates should be displayed</string>
+    <string name="optionLineNumbers_OnlyIfBigEnough">Only if screen is big enough</string>
+    <string name="optionLineNumbers_Yes">Yes</string>
+    <string name="optionLineNumbers_No">No</string>
+    <string name="optionLineNumberValues_OnlyIfBigEnough">1</string>
+    <string name="optionLineNumberValues_Yes">2</string>
+    <string name="optionLineNumberValues_No">3</string>
+
+    <string name="timeValuesThreeMin">1</string>
+    <string name="timeValuesFiveMin">2</string>
+    <string name="timeValuesSevenMin">3</string>
+    <string name="timeValuesTenMin">4</string>
+    <string name="timeValuesThirtyMin">5</string>
+    <string name="timeValuesNoTime">6</string>
+    <string name="buttonLoad">Load</string>
+    <string name="main_window_image">main_window_image</string>
+</resources>

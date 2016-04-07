@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string-array name="lineNumberOptions">
+		<item>@string/optionLineNumbers_OnlyIfBigEnough</item>
+		<item>@string/optionLineNumbers_Yes</item>
+		<item>@string/optionLineNumbers_No</item>
+	</string-array>
+	<string-array name="lineNumberValues">
+		<item>@string/optionLineNumberValues_OnlyIfBigEnough</item>
+		<item>@string/optionLineNumberValues_Yes</item>
+		<item>@string/optionLineNumberValues_No</item>
+	</string-array>
+
+</resources>
