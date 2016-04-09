@@ -47,9 +47,8 @@ public class BoardAdapter {
 
     public Cursor queryBoards() {
         openToRead();
-        Cursor cursor = db.query( DBHelper.TableBoards,
+        return db.query( DBHelper.TableBoards,
                 DBHelper.TableBoardsCols, null, null, null, null, null);
-        return cursor;
     }
 
     public void drop()
@@ -65,9 +64,8 @@ public class BoardAdapter {
     public Cursor queryBoards( String name) {
         openToRead();
         String[] cols = DBHelper.TableBoardsCols;
-        Cursor cursor = db.query( DBHelper.TableBoards,
+        return db.query( DBHelper.TableBoards,
                 cols, cols[1] + " = \"" + name + "\"", null, null, null, null);
-        return cursor;
     }
 
     public long count() {

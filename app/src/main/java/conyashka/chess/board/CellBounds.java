@@ -7,10 +7,10 @@ class CellBounds {
     private final float bottom;
 
     public CellBounds(Coordinate c, float padding, float cellSize) {
-        left = padding + (cellSize * (c.getFile() - 1));
-        right = padding + (cellSize * c.getFile());
-        top = padding + (cellSize * (8 - c.getRank()));
-        bottom = padding + (cellSize * (9 - c.getRank()));
+        left = padding + (cellSize * (c.getFile()));
+        right = padding + (cellSize * (c.getFile() + 1));
+        top = padding + (cellSize * (7 - c.getRank()));
+        bottom = padding + (cellSize * (8 - c.getRank()));
     }
 
     public float getLeft() {

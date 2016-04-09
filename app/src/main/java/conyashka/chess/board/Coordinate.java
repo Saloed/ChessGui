@@ -11,8 +11,14 @@ class Coordinate {
     private final int rank;
 
     Coordinate(int file, int rank) {
-        this.file = 8 - file;
-        this.rank = 8 - rank;
+        this.file = 7 - file;
+        this.rank = 7 - rank;
+        //check();
+    }
+
+    private void check() {
+        if (file < 0 || rank < 0 || file > 7 || rank > 7)
+            throw new IllegalArgumentException(toString());
     }
 
     public int getFile() {
@@ -29,8 +35,7 @@ class Coordinate {
     }
 
     public String getCoord() {
-        if (file < 0 || rank < 0 || file > 7 || rank > 7)
-            throw new IllegalArgumentException(toString());
+
         return String.valueOf((FILES.charAt(file)) + String.valueOf(RANKS.charAt(rank)));
     }
 }

@@ -9,6 +9,9 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.media.MediaPlayer;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -16,48 +19,81 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import api.ChessAPI;
 import conyashka.chess.R;
 import conyashka.chess.activities.GameActivity;
-import core.BitBoard;
-import core.EngineHelper;
-import model.Piece;
+import conyashka.chess.engine.api.ChessAPI;
+import conyashka.chess.engine.core.BitBoard;
+import conyashka.chess.engine.core.EngineHelper;
+import conyashka.chess.engine.model.Piece;
+
 
 public class Board extends View {
     private static final String TAG = "APPLICATION_DEBUG";
-
+    //private final static AtomicInteger indexer = new AtomicInteger(0);
+    private final ExecutorService engineExecutor = Executors.newSingleThreadExecutor();
     private final ChessAPI chessAPI = new ChessAPI();
-
     private final int NUM_CELLS = 8;
-    private final int m_numberPaddingFactor = 20;
-    private final int m_highlightFactor = 8;
+    private final int numberPaddingFactor = 20;
+    private final int highlightFactor = 8;
     private final Bitmap backBitmap;
-    private final Paint m_paintGrid = new Paint();
+    private final Paint paintGrid = new Paint();
     private final Rect drawRect = new Rect();
-    private final Paint m_paintLineNumbers = new Paint();
-    private final Paint m_paintPieces = new Paint();
-    private final Paint m_paintHighlightCell = new Paint();
-
+    private final Paint paintLineNumbers = new Paint();
+    private final Paint paintPieces = new Paint();
+    private final Paint paintHighlightCell = new Paint();
     private final Paint mypaint = new Paint();
     private final Paint borderPaint = new Paint();
     private final List<Bitmap> pieceBitmaps;
-    private final MediaPlayer m_mediaPlayer;
-
+    private final MediaPlayer mediaPlayer;
+    private boolean playVsComputer = false;
+    private boolean playDemo = false;
     private float soundVolume = 0;
-
     private boolean finished = false;
-    private int m_cellSize;
-    private int m_numberPadding;
+    private int cellSize;
+    private int numberPadding;
     private Bitmap backScaledBitmap;
     private int minSizeForNumbers = 800;
     private Coordinate currentPieceCoordinate = null;
     private Coordinate lastMoveStart = null;
     private Coordinate lastMoveEnd = null;
+    private boolean isEngineCalculate = false;
+    private boolean waitForRepaint = false;
+    //private final Thread engineThread = new Thread(engineCalculatingTask);
     private List<Bitmap> pieceScaledBitmaps;
-
     private Map<Long, List<BitBoard.BitBoardMove>> possibleMoves;
+    private boolean helpWasRequested = false;
+    private final Handler engineResultHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            //Log.i(TAG, "result move handled");
+            Bundle bundle = msg.getData();
+            String calculatedMove = bundle.getString("calculatedMove");
+            afterComputerCalc(calculatedMove);
+        }
+    };
+    private final Runnable engineCalculatingTask = new Runnable() {
+        @Override
+        public void run() {
 
+//            Thread.currentThread().setName("Engine Thread " + indexer.getAndIncrement());
+//            Log.i(TAG, "Thread renamed");
+
+            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+
+            //Log.i(TAG, "start move calculating");
+            String move = chessAPI.computerMove();
+            //Log.i(TAG, "move calculating is near end");
+            Message msg = (engineResultHandler.obtainMessage());
+            Bundle bundle = new Bundle();
+            bundle.putString("calculatedMove", move);
+            msg.setData(bundle);
+            engineResultHandler.sendMessage(msg);
+            //Log.i(TAG, "run() ended, move calculated");
+        }
+    };
 
     public Board(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -69,18 +105,18 @@ public class Board extends View {
         backBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.plank);
 
 
-        m_paintPieces.setStyle(Paint.Style.FILL);
-        m_paintPieces.setStrokeWidth(4);
-        m_paintPieces.setTextAlign(Paint.Align.CENTER);
+        paintPieces.setStyle(Paint.Style.FILL);
+        paintPieces.setStrokeWidth(4);
+        paintPieces.setTextAlign(Paint.Align.CENTER);
 
-        m_paintLineNumbers.setStyle(Paint.Style.FILL);
-        m_paintLineNumbers.setStrokeWidth(4);
-        m_paintPieces.setTextAlign(Paint.Align.CENTER);
-        m_paintLineNumbers.setColor(Color.GRAY);
+        paintLineNumbers.setStyle(Paint.Style.FILL);
+        paintLineNumbers.setStrokeWidth(4);
+        paintPieces.setTextAlign(Paint.Align.CENTER);
+        paintLineNumbers.setColor(Color.GRAY);
 
-        m_mediaPlayer = MediaPlayer.create(context, R.raw.tick);
-        m_mediaPlayer.setVolume(soundVolume, soundVolume);
-        m_mediaPlayer.setLooping(false);
+        mediaPlayer = MediaPlayer.create(context, R.raw.tick);
+        mediaPlayer.setVolume(soundVolume, soundVolume);
+        mediaPlayer.setLooping(false);
 
         ArrayList<Bitmap> bitmaps = new ArrayList<>(13);
         bitmaps.add(BitmapFactory.decodeResource(getResources(), R.drawable.chessklt60));
@@ -103,12 +139,18 @@ public class Board extends View {
 
     public void setPreferences(int soundVolume) {
         this.soundVolume = soundVolume / 100.0f;
-        this.m_mediaPlayer.setVolume(soundVolume, soundVolume);
+        this.mediaPlayer.setVolume(soundVolume, soundVolume);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         //  Log.i(TAG, "draw start");
+
+        if (isEngineCalculate)
+            return;
+
+        // try {
+
 
         CellBounds temp;
 
@@ -118,10 +160,10 @@ public class Board extends View {
         mypaint.setFilterBitmap(true);
         mypaint.setDither(true);
 
-        canvas.drawBitmap(backScaledBitmap, m_numberPadding, m_numberPadding, mypaint);
+        canvas.drawBitmap(backScaledBitmap, numberPadding, numberPadding, mypaint);
 
         // Log.i(TAG, "fon drowed");
-
+        //try {
         //Draw the squares
         for (int x = 0; x < NUM_CELLS; x++) {
             for (int y = 0; y < NUM_CELLS; y++) {
@@ -129,64 +171,84 @@ public class Board extends View {
 
                 drawRect.set((int) temp.getLeft(), (int) temp.getTop(), (int) temp.getRight(), (int) temp.getBottom());
                 if ((((x & 1) ^ 1) ^ (y & 1)) != 1) {
-                    m_paintGrid.setColor(Color.parseColor("#80efebe8"));
+                    paintGrid.setColor(Color.parseColor("#80efebe8"));
                 } else {
-                    m_paintGrid.setColor(Color.parseColor("#80b8c1c0"));
+                    paintGrid.setColor(Color.parseColor("#80b8c1c0"));
                 }
-                canvas.drawRect(drawRect, m_paintGrid);
+                canvas.drawRect(drawRect, paintGrid);
             }
         }
         //  Log.i(TAG, "squares drawed");
-
+//            } catch (Exception e) {
+//                Log.i(TAG, "board fill " + e.toString());
+//            }
         borderPaint.reset();
         borderPaint.setColor(Color.parseColor("#423f3b"));
         borderPaint.setStyle(Paint.Style.STROKE);
         borderPaint.setStrokeWidth(10);
-        canvas.drawRect(-2 + m_numberPadding, -2 + m_numberPadding, m_cellSize * 8 + 2 + m_numberPadding, m_cellSize * 8 + 2 + m_numberPadding, borderPaint);
+        canvas.drawRect(-2 + numberPadding, -2 + numberPadding,
+                cellSize * 8 + 2 + numberPadding,
+                cellSize * 8 + 2 + numberPadding, borderPaint);
 
         //Draw the edge of the board for clarity
         //If there is enough space
         //Draw the left numbers
         for (int i = 0; i < 8; i++) {
-            canvas.drawText(String.format("%s", 8 - i), m_numberPadding * 0.25f, m_numberPadding + m_paintLineNumbers.getTextSize() * 0.25f + m_cellSize * (i + 0.5f), m_paintLineNumbers);
+            canvas.drawText(String.format("%s", 8 - i),
+                    numberPadding * 0.25f,
+                    numberPadding + paintLineNumbers.getTextSize() * 0.25f + cellSize * (i + 0.5f),
+                    paintLineNumbers);
         }
 
         //Draw the right numbers
         for (int i = 0; i < 8; i++) {
-            canvas.drawText(String.format("%s", 8 - i), m_cellSize * 8 + m_numberPadding * 1.25f, m_numberPadding + m_paintLineNumbers.getTextSize() * 0.25f + m_cellSize * (i + 0.5f), m_paintLineNumbers);
+            canvas.drawText(String.format("%s", 8 - i),
+                    cellSize * 8 + numberPadding * 1.25f,
+                    numberPadding + paintLineNumbers.getTextSize() * 0.25f + cellSize * (i + 0.5f),
+                    paintLineNumbers);
         }
 
         //Draw the top letters
         for (int i = 0; i < 8; i++) {
-            canvas.drawText(numberToChar(i + 1), m_numberPadding + m_cellSize * (i + 0.5f) - m_paintLineNumbers.getTextSize() * 0.5f, m_numberPadding * 0.75f, m_paintLineNumbers);
+            canvas.drawText(numberToChar(i + 1),
+                    numberPadding + cellSize * (i + 0.5f) - paintLineNumbers.getTextSize() * 0.5f,
+                    numberPadding * 0.75f,
+                    paintLineNumbers);
         }
 
 
         //Draw the bottom letters
         for (int i = 0; i < 8; i++) {
-            canvas.drawText(numberToChar(i + 1), m_numberPadding + m_cellSize * (i + 0.5f) - m_paintLineNumbers.getTextSize() * 0.5f, canvas.getHeight() - m_paintLineNumbers.getTextSize() * 0.25f, m_paintLineNumbers);
+            canvas.drawText(numberToChar(i + 1),
+                    numberPadding + cellSize * (i + 0.5f) - paintLineNumbers.getTextSize() * 0.5f,
+                    canvas.getHeight() - paintLineNumbers.getTextSize() * 0.25f,
+                    paintLineNumbers);
         }
 
 //        Log.i(TAG, "line numbers drowed");
 
 
-//        if (this.lastMoveStart != null) {
-//            highlightCell(canvas, lastMoveStart, Color.parseColor("#bdb29d"));
-//            highlightCell(canvas, lastMoveEnd, Color.parseColor("#bdb29d"));
-//        }
+        if (this.lastMoveStart != null && this.lastMoveEnd != null) {
+            highlightCell(canvas, lastMoveStart, Color.parseColor("#bdb29d"));
+            highlightCell(canvas, lastMoveEnd, Color.parseColor("#bdb29d"));
+        }
 
         // Log.i(TAG, "dont know drowed");
 
         //Draw highlights
         if ((currentPieceCoordinate != null) && !possibleMoves.isEmpty()) {
             List<BitBoard.BitBoardMove> legalMoves = possibleMoves.get(
-                    chessAPI.getPosition(currentPieceCoordinate.getFile(), currentPieceCoordinate.getRank()));
+                    chessAPI.getPosition(currentPieceCoordinate.getFile(),
+                            currentPieceCoordinate.getRank()));
 
             if (legalMoves != null) {
                 for (BitBoard.BitBoardMove move : legalMoves) {
                     Coordinate to = new Coordinate(chessAPI.getFile(move.getToSquare()),
                             chessAPI.getRank(move.getToSquare()));
 
+//                    if (move.getCastle()) {
+//                        Log.i(TAG, currentPieceCoordinate.toString() + to.toString());
+//                    }
 
                     if (move.getCastle())
                         highlightCell(canvas, to, Color.parseColor("#B3094809"));
@@ -209,13 +271,15 @@ public class Board extends View {
 
         // Draw the pieces
         //for(Piece p : gameState.getPieces()){
+
+        //try {
         for (ChessAPI.SquareAndPiece piece : boardPieces)
 
         {
             if (piece.getColor() == Piece.INSTANCE.getWHITE()) {
-                m_paintPieces.setColor(Color.BLUE);
+                paintPieces.setColor(Color.BLUE);
             } else {
-                m_paintPieces.setColor(Color.RED);
+                paintPieces.setColor(Color.RED);
             }
 
             Coordinate pos = new Coordinate(piece.getFile(), piece.getRank());
@@ -229,14 +293,26 @@ public class Board extends View {
 
             Bitmap scaledBitmap = getImage(piece.getPiece(), piece.getColor());
 
-            canvas.drawBitmap(scaledBitmap, bounds.getLeft() - m_cellSize * 0.01f, bounds.getBottom() - m_cellSize, mypaint);
+            canvas.drawBitmap(scaledBitmap, bounds.getLeft() - cellSize * 0.01f, bounds.getBottom() - cellSize, mypaint);
 
-            //canvas.drawText(p.getString(), bounds.getLeft() + m_cellSize * 0.5f, bounds.getBottom() - m_cellSize * 0.4f, m_paintPieces);
+            //canvas.drawText(p.getString(), bounds.getLeft() + cellSize * 0.5f, bounds.getBottom() - cellSize * 0.4f, paintPieces);
 
         }
+//            } catch (Exception e) {
+//                Log.i(TAG, "piece draw " + e.toString());
+//            }
 //        Log.i(TAG, "pieces drowed");
 //
 //        Log.i(TAG, "draw end");
+//        } catch (Exception e) {
+//            Log.i(TAG, "onDraw: " + e.toString());
+//        }
+
+
+        if (waitForRepaint) {
+            waitForRepaint = false;
+            computerMove();
+        }
 
     }
 
@@ -258,22 +334,22 @@ public class Board extends View {
         /*if (this.useLineNumbers == LineNumberOption.YES ||
                 (this.useLineNumbers == LineNumberOption.IF_BIG_ENOUGH && (size - 2 * largestPadding) >= minSizeForNumbers)) {
           */
-        m_numberPadding = (size - 2 * largestPadding) / m_numberPaddingFactor;
+        numberPadding = (size - 2 * largestPadding) / numberPaddingFactor;
         /*} else {
-            m_numberPadding = 0;
+            numberPadding = 0;
         }
 */
-        m_cellSize = (size - 2 * largestPadding - 2 * m_numberPadding) / NUM_CELLS;
-        m_paintPieces.setTextSize(m_cellSize * 0.5f);
-        m_paintHighlightCell.setStrokeWidth(m_cellSize / m_highlightFactor);
-        m_paintLineNumbers.setTextSize(m_numberPadding * 0.75f);
+        cellSize = (size - 2 * largestPadding - 2 * numberPadding) / NUM_CELLS;
+        paintPieces.setTextSize(cellSize * 0.5f);
+        paintHighlightCell.setStrokeWidth(cellSize / highlightFactor);
+        paintLineNumbers.setTextSize(numberPadding * 0.75f);
 
-        backScaledBitmap = Bitmap.createScaledBitmap(backBitmap, m_cellSize * 8, m_cellSize * 8, true);
+        backScaledBitmap = Bitmap.createScaledBitmap(backBitmap, cellSize * 8, cellSize * 8, true);
 
 
         ArrayList<Bitmap> bitmaps = new ArrayList<>(12);
         for (Bitmap bitmap : pieceBitmaps) {
-            bitmaps.add(Bitmap.createScaledBitmap(bitmap, m_cellSize, m_cellSize, true));
+            bitmaps.add(Bitmap.createScaledBitmap(bitmap, cellSize, cellSize, true));
         }
         pieceScaledBitmaps = bitmaps;
 
@@ -281,7 +357,10 @@ public class Board extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (isEngineCalculate)
+            return true;
         //Log.i(TAG, "board touch");
+        //try {
         if (!finished) {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 pressed(event);
@@ -292,6 +371,9 @@ public class Board extends View {
             }
             return true;
         }
+//        } catch (Exception e) {
+//            Log.i(TAG, e.toString());
+//        }
         return true;
     }
 
@@ -322,8 +404,10 @@ public class Board extends View {
             if (oldPosition != null) {
                 // Log.i(TAG, "oldPos!=null");
 
-                List<BitBoard.BitBoardMove> legalMoves = possibleMoves.get(
-                        chessAPI.getPosition(oldPosition.getFile(), oldPosition.getRank()));
+                String moveString = oldPosition.getCoord() + c.getCoord();
+                BitBoard.BitBoardMove theMove = chessAPI.strToMove(moveString);
+
+                List<BitBoard.BitBoardMove> legalMoves = possibleMoves.get(theMove.getFromSquare());
 //                for (Move m : legalMoves) {
 //                    if (oldPosition.equals(chessState.sqrToStr(((ChessMove) m).getFrom()))
 //                            && c.equals(chessState.sqrToStr(((ChessMove) m).getTo()))) {
@@ -340,12 +424,66 @@ public class Board extends View {
                     return;
                 }
 
-                String moveString = oldPosition.getCoord() + c.getCoord();
                 //System.out.println("MoveString: " + moveString);
 
 
                 // Log.i(TAG, moveString);
-                BitBoard.BitBoardMove theMove = chessAPI.strToMove(moveString);
+
+//                Log.i(TAG, moveString);
+//                Log.i(TAG, theMove.toString());
+//                Log.i(TAG, "Legal Moves Contains this move:  " + legalMoves.contains(theMove));
+//                boolean flag = false;
+//                for (List<BitBoard.BitBoardMove> b : possibleMoves.values()) {
+//                    for (BitBoard.BitBoardMove a : b)
+//                        if (a.getCastle()) {
+//                            Log.i(TAG, "Can castle");
+//                            Log.i(TAG, a.toString());
+//
+//                            Log.i(TAG, "tryed move");
+//                            Log.i(TAG, theMove.toString());
+//
+//                            if (a.equals(theMove))
+//                                Log.i(TAG, "Moves equals");
+//
+//                            if (theMove.equals(a))
+//                                Log.i(TAG, "inverse moves equals");
+//
+//                            if (a.getFromSquare() != theMove.getFromSquare())
+//                                Log.i(TAG, "from square ");
+//
+//                            if (a.getToSquare() != theMove.getToSquare())
+//                                Log.i(TAG, "to square ");
+//
+//                            if (a.getCastle() != theMove.getCastle())
+//                                Log.i(TAG, "castle ");
+//
+//                            if (a.getEnpassant() != theMove.getEnpassant())
+//                                Log.i(TAG, "enpassant ");
+//
+//                            if (a.isCapture() != theMove.isCapture())
+//                                Log.i(TAG, "capture ");
+//
+//                            if (a.getPromote() != theMove.getPromote())
+//                                Log.i(TAG, "promote ");
+//
+//                            if (a.getColorIndex() != theMove.getColorIndex())
+//                                Log.i(TAG, "color ");
+//
+//                            if (a.getPieceIndex() != theMove.getPieceIndex())
+//                                Log.i(TAG, "piece ");
+//
+//
+//                            flag = true;
+//                            break;
+//                        }
+//                    if (flag)
+//                        break;
+//                }
+//
+//                if (!flag)
+//                    Log.i(TAG, "Cant castle");
+
+
                 if (legalMoves.contains(theMove)) {
 
                     chessAPI.makeMove(moveString);
@@ -354,8 +492,8 @@ public class Board extends View {
                 }
                 if (oldPlayerToMove != chessAPI.currentPlayer()) {
                     //A move was made
-                    m_mediaPlayer.setVolume(soundVolume, soundVolume);
-                    m_mediaPlayer.start();
+                    mediaPlayer.setVolume(soundVolume, soundVolume);
+                    mediaPlayer.start();
                     GameActivity activity = (GameActivity) getContext();
 
                     this.lastMoveStart = oldPosition;
@@ -364,10 +502,13 @@ public class Board extends View {
                     possibleMoves = chessAPI.allPossibleMoves();
 
                     if (gameWon()) {
-                        activity.newTurn();
-                        activity.playerwon(oldPlayerToMove);
+                        activity.newTurn(moveString);
+                        activity.playerwon(chessAPI.currentPlayer());
                     } else {
-                        activity.newTurn();
+                        activity.newTurn(moveString);
+                        if (playVsComputer) {
+                            waitForRepaint = true;
+                        }
                     }
                     currentPieceCoordinate = null;
                 } else {
@@ -405,54 +546,64 @@ public class Board extends View {
     }
 
     private Coordinate getCoordinate(int x, int y) {
-        int boardRange = getHeight() - 2 * m_numberPadding;
 
-        int c = x - m_numberPadding;
-        int r = y - m_numberPadding;
+
+        int boardRange = getHeight() - 2 * numberPadding;
+
+        // Log.i(TAG, "Width " + getWidth() + " Height " + getHeight() + " Padding " + numberPadding);
+
+        int c = x - numberPadding;
+        int r = y - numberPadding;
+
+        // Log.i(TAG, "X " + x + " Y " + y + " C " + c + " R " + r);
+
 
         if (c < 0 || c > boardRange || r < 0 || r > boardRange) {
             return null;
         }
 
-        c = c / m_cellSize;
-        r = r / m_cellSize;
+        c = c / cellSize;
+        r = r / cellSize;
+
+        //Log.i(TAG, " Final   C " + c + " R " + r);
+
 //        Log.i(TAG, " c " + c + " r " + r);
 //        Log.i(TAG, (new Coordinate(8 - c, r + 1)).toString());
 
-        return new Coordinate(8 - c, r + 1);
+        return new Coordinate(7 - c, r);
     }
 
     private CellBounds getCellBounds(Coordinate c) {
-        return new CellBounds(c, m_numberPadding, m_cellSize);
+        return new CellBounds(c, numberPadding, cellSize);
     }
 
     private void highlightCell(Canvas canvas, Coordinate cell, int color) {
         CellBounds theBounds = getCellBounds(cell);
 
-        m_paintHighlightCell.setColor(color);
-        m_paintHighlightCell.setStyle(Paint.Style.STROKE);
+        paintHighlightCell.setColor(color);
+        paintHighlightCell.setStyle(Paint.Style.STROKE);
         Path thePath = new Path();
-        float offset = m_paintHighlightCell.getStrokeWidth() / 2;
+        float offset = paintHighlightCell.getStrokeWidth() / 2;
         thePath.moveTo(theBounds.getLeft() + offset, theBounds.getBottom() - offset);
         thePath.lineTo(theBounds.getLeft() + offset, theBounds.getTop() + offset);
         thePath.lineTo(theBounds.getRight() - offset, theBounds.getTop() + offset);
         thePath.lineTo(theBounds.getRight() - offset, theBounds.getBottom() - offset);
         thePath.lineTo(theBounds.getLeft(), theBounds.getBottom() - offset);
-        canvas.drawPath(thePath, m_paintHighlightCell);
+        canvas.drawPath(thePath, paintHighlightCell);
     }
 
     private void fillCell(Canvas canvas, Coordinate cell, int color) {
         CellBounds theBounds = getCellBounds(cell);
 
-        m_paintHighlightCell.setColor(color);
-        m_paintHighlightCell.setStyle(Paint.Style.FILL);
+        paintHighlightCell.setColor(color);
+        paintHighlightCell.setStyle(Paint.Style.FILL);
         Path thePath = new Path();
         thePath.moveTo(theBounds.getLeft(), theBounds.getBottom());
         thePath.lineTo(theBounds.getLeft(), theBounds.getTop());
         thePath.lineTo(theBounds.getRight(), theBounds.getTop());
         thePath.lineTo(theBounds.getRight(), theBounds.getBottom());
         thePath.lineTo(theBounds.getLeft(), theBounds.getBottom());
-        canvas.drawPath(thePath, m_paintHighlightCell);
+        canvas.drawPath(thePath, paintHighlightCell);
     }
 
     private String numberToChar(int number) {
@@ -476,6 +627,14 @@ public class Board extends View {
             default:
                 throw new IllegalArgumentException("Illegal coordinate");
         }
+    }
+
+    //FIXME exception can appear after help. Don't know why
+    public void helpRequest() {
+        if (isEngineCalculate || helpWasRequested)
+            return;
+        helpWasRequested = true;
+        computerMove();
     }
 
     public void reset() {
@@ -532,6 +691,77 @@ public class Board extends View {
         return pieceScaledBitmaps.get(12);
     }
 
+    public void setEnginePower(int power) {
+        chessAPI.setEnginePowerfull(power % 5, power / 5);
+    }
+
+    public void computerMove() {
+
+        // Log.i(TAG, "compute method call");
+
+        if (isEngineCalculate) {
+            //   Log.i(TAG, "compute method returned without running");
+            return;
+
+        }
+        isEngineCalculate = true;
+        //Log.i(TAG, "compute method request running");
+
+        engineExecutor.execute(engineCalculatingTask);
+
+
+//        engineThread.setPriority(Thread.MAX_PRIORITY);
+//        engineThread.start();
+
+    }
+
+    private void playDemo() {
+
+    }
+
+    private void afterComputerCalc(String move) {
+
+//        Log.i(TAG, "after compute method calls");
+
+        BitBoard.BitBoardMove m = chessAPI.strToMove(move);
+        lastMoveStart = new Coordinate(chessAPI.getFile(m.getFromSquare()),
+                chessAPI.getRank(m.getFromSquare()));
+        lastMoveEnd = new Coordinate(chessAPI.getFile(m.getToSquare()),
+                chessAPI.getRank(m.getToSquare()));
+//        Log.i(TAG, "End move calculating");
+
+        possibleMoves = chessAPI.allPossibleMoves();
+
+        isEngineCalculate = false;
+
+        GameActivity theActivity = (GameActivity) getContext();
+        theActivity.newTurn(move);
+
+
+        if (helpWasRequested) {
+            helpWasRequested = false;
+            if (playVsComputer)
+                waitForRepaint = true;
+
+        }
+
+
+        invalidate();
+
+    }
+
+    public void stopRequest() {
+        if (!isEngineCalculate)
+            return;
+//        if (!engineThread.isAlive())
+//            return;
+//
+//        engineThread.interrupt();
+
+        engineExecutor.shutdownNow();
+        isEngineCalculate = false;
+    }
+
     public String getGameState() {
         return chessAPI.getFen();
     }
@@ -557,25 +787,52 @@ public class Board extends View {
 	}
 	*/
 
+    public void acceptGameMode(boolean playVsComputer, boolean playDemo) {
+        this.playVsComputer = playVsComputer;
+        this.playDemo = playDemo;
 
-    public void backTrack() {
+        if (playDemo)
+            playDemo();
 
-        chessAPI.unmakeMove();
-
-        this.lastMoveStart = null;
-        this.lastMoveEnd = null;
-        this.finished = false;
-
-
-        //this.lastMoveStart = null;
-        //this.lastMoveEnd = null;
-
-        GameActivity theActivity = (GameActivity) getContext();
-        theActivity.newTurn();
-
-        invalidate();
     }
 
+
+    public void backTrack() {
+        if (isEngineCalculate)
+            return;
+        if (chessAPI.unmakeMove()) {
+
+            this.lastMoveStart = null;
+            this.lastMoveEnd = null;
+            this.finished = false;
+
+            possibleMoves = chessAPI.allPossibleMoves();
+
+            //this.lastMoveStart = null;
+            //this.lastMoveEnd = null;
+
+            GameActivity theActivity = (GameActivity) getContext();
+            theActivity.newTurn("");
+
+            invalidate();
+        }
+    }
+
+
+    public void saveToDatabase() {
+        if (isEngineCalculate)
+            return;
+    }
+
+    public void loadFromDatabase() {
+        if (isEngineCalculate)
+            return;
+    }
+
+    public void editSettings() {
+        if (isEngineCalculate)
+            return;
+    }
 
 }
 
