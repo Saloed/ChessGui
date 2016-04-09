@@ -22,14 +22,13 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import api.ChessAPI;
 import conyashka.chess.R;
 import conyashka.chess.activities.GameActivity;
 import conyashka.chess.database.BoardAdapter;
-import conyashka.chess.engine.api.ChessAPI;
-import conyashka.chess.engine.core.BitBoard;
-import conyashka.chess.engine.core.EngineHelper;
-import conyashka.chess.engine.model.Piece;
-
+import core.BitBoard;
+import core.EngineHelper;
+import model.Piece;
 
 public class Board extends View {
     private static final String TAG = "APPLICATION_DEBUG";
