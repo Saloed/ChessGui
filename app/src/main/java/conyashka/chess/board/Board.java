@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 
 import conyashka.chess.R;
 import conyashka.chess.activities.GameActivity;
+import conyashka.chess.database.BoardAdapter;
 import conyashka.chess.engine.api.ChessAPI;
 import conyashka.chess.engine.core.BitBoard;
 import conyashka.chess.engine.core.EngineHelper;
@@ -779,11 +780,14 @@ public class Board extends View {
     }
 
     public String getGameState() {
+//        Log.i(TAG, chessAPI.getFen());
         return chessAPI.getFen();
     }
 
-    public void setGameState(String board) {
+    public void setGameState(String board, boolean finished) {
         chessAPI.setPosition(board);
+        this.finished = finished;
+        possibleMoves = chessAPI.allPossibleMoves();
     }
 
 	/*
@@ -841,6 +845,9 @@ public class Board extends View {
             gameActivity.showBusyMessage();
             return;
         }
+
+        BoardAdapter adapter = new BoardAdapter(getContext());
+        adapter.insertBoard(saveName, getGameState(), finished ? 1 : 0);
 
 
     }

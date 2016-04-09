@@ -55,7 +55,7 @@ public class LoadActivity extends ListActivity {
         theIntent.removeExtra("LoadGame");
         theIntent.putExtra("LoadGame", true);
         theIntent.putExtra("BoardState", cursor.getString(2));
-        theIntent.putExtra("turn", cursor.getInt(5));
+        theIntent.putExtra("isFinished", cursor.getInt(3));
 
         startActivity(theIntent);
 /*

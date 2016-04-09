@@ -39,14 +39,21 @@ public class GameActivity extends Activity {
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
+        //  try {
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
-        //Log.i(TAG,"creation start");
+        //          Log.i(TAG, "creation start");
 
         Bundle extras = getIntent().getExtras();
-
+//            Log.i(TAG, "Checkpoint 0");
         currentContext = this;
+
+        boolean gameLoading = (extras != null) && extras.getBoolean("LoadGame", false);
+
+        //        Log.i(TAG, "Checkpoint 1");
 
         SharedPreferences shareSettings = getSharedPreferences("MyPrefs", 0);
         SharedPreferences defaultSettings = PreferenceManager.getDefaultSharedPreferences(this);
@@ -58,7 +65,16 @@ public class GameActivity extends Activity {
         theBoard = (Board) findViewById(R.id.board);
 
         theBoard.setPreferences(Integer.parseInt(soundVolume));
+        //          Log.i(TAG, "Checkpoint 2");
+        if (gameLoading) {
 
+            String fen = extras.getString("BoardState");
+            int isFinished = extras.getInt("isFinished");
+            boolean finished = (isFinished != 0);
+            theBoard.setGameState(fen, finished);
+
+        }
+//            Log.i(TAG, "Checkpoint 3");
 //        int size = (getWindow().getAttributes().width) / 6;
 //
 //        Log.i(TAG, "size is " + size);
@@ -91,7 +107,7 @@ public class GameActivity extends Activity {
         Button revertButton = (Button) findViewById(R.id.revertButton);
         Button settingsButton = (Button) findViewById(R.id.settingsButton);
 
-
+        //Log.i(TAG, "Checkpoint 4");
         helpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -218,8 +234,11 @@ public class GameActivity extends Activity {
         }
 
         //Log.i(TAG,"creation end");
+        // Log.i(TAG, "Checkpoint 5");
 
-
+//        } catch (Exception e) {
+//            Log.i(TAG, e.toString());
+//        }
     }
 
     /**
