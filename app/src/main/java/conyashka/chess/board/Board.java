@@ -48,6 +48,8 @@ public class Board extends View {
     private final Paint borderPaint = new Paint();
     private final List<Bitmap> pieceBitmaps;
     private final MediaPlayer mediaPlayer;
+    private final GameActivity gameActivity;
+    public boolean isEngineCalculate = false;
     private boolean playVsComputer = false;
     private boolean playDemo = false;
     private float soundVolume = 0;
@@ -59,7 +61,6 @@ public class Board extends View {
     private Coordinate currentPieceCoordinate = null;
     private Coordinate lastMoveStart = null;
     private Coordinate lastMoveEnd = null;
-    private boolean isEngineCalculate = false;
     private boolean waitForRepaint = false;
     //private final Thread engineThread = new Thread(engineCalculatingTask);
     private List<Bitmap> pieceScaledBitmaps;
@@ -134,6 +135,9 @@ public class Board extends View {
         bitmaps.add(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
         pieceBitmaps = bitmaps;
         pieceScaledBitmaps = new ArrayList<>(13);
+
+
+        gameActivity = (GameActivity) getContext();
 
     }
 
@@ -357,8 +361,10 @@ public class Board extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (isEngineCalculate)
+        if (isEngineCalculate) {
+            gameActivity.showBusyMessage();
             return true;
+        }
         //Log.i(TAG, "board touch");
         //try {
         if (!finished) {
@@ -494,7 +500,6 @@ public class Board extends View {
                     //A move was made
                     mediaPlayer.setVolume(soundVolume, soundVolume);
                     mediaPlayer.start();
-                    GameActivity activity = (GameActivity) getContext();
 
                     this.lastMoveStart = oldPosition;
                     this.lastMoveEnd = c;
@@ -502,10 +507,10 @@ public class Board extends View {
                     possibleMoves = chessAPI.allPossibleMoves();
 
                     if (gameWon()) {
-                        activity.newTurn(moveString);
-                        activity.playerwon(chessAPI.currentPlayer());
+                        gameActivity.newTurn(moveString);
+                        gameActivity.playerwon(chessAPI.currentPlayer());
                     } else {
-                        activity.newTurn(moveString);
+                        gameActivity.newTurn(moveString);
                         if (playVsComputer) {
                             waitForRepaint = true;
                         }
@@ -631,8 +636,10 @@ public class Board extends View {
 
     //FIXME exception can appear after help. Don't know why
     public void helpRequest() {
-        if (isEngineCalculate || helpWasRequested)
+        if (isEngineCalculate || helpWasRequested) {
+            gameActivity.showBusyMessage();
             return;
+        }
         helpWasRequested = true;
         computerMove();
     }
@@ -717,6 +724,9 @@ public class Board extends View {
 
     private void playDemo() {
 
+        waitForRepaint = true;
+        invalidate();
+
     }
 
     private void afterComputerCalc(String move) {
@@ -734,8 +744,7 @@ public class Board extends View {
 
         isEngineCalculate = false;
 
-        GameActivity theActivity = (GameActivity) getContext();
-        theActivity.newTurn(move);
+        gameActivity.newTurn(move);
 
 
         if (helpWasRequested) {
@@ -747,6 +756,10 @@ public class Board extends View {
 
 
         invalidate();
+
+
+        if (playDemo)
+            playDemo();
 
     }
 
@@ -760,6 +773,9 @@ public class Board extends View {
 
         engineExecutor.shutdownNow();
         isEngineCalculate = false;
+        if (playDemo) {
+            playDemo = false;
+        }
     }
 
     public String getGameState() {
@@ -798,8 +814,10 @@ public class Board extends View {
 
 
     public void backTrack() {
-        if (isEngineCalculate)
+        if (isEngineCalculate) {
+            gameActivity.showBusyMessage();
             return;
+        }
         if (chessAPI.unmakeMove()) {
 
             this.lastMoveStart = null;
@@ -811,27 +829,34 @@ public class Board extends View {
             //this.lastMoveStart = null;
             //this.lastMoveEnd = null;
 
-            GameActivity theActivity = (GameActivity) getContext();
-            theActivity.newTurn("");
+            gameActivity.newTurn("");
 
             invalidate();
         }
     }
 
 
-    public void saveToDatabase() {
-        if (isEngineCalculate)
+    public void saveToDatabase(String saveName) {
+        if (isEngineCalculate) {
+            gameActivity.showBusyMessage();
             return;
+        }
+
+
     }
 
     public void loadFromDatabase() {
-        if (isEngineCalculate)
+        if (isEngineCalculate) {
+            gameActivity.showBusyMessage();
             return;
+        }
     }
 
     public void editSettings() {
-        if (isEngineCalculate)
+        if (isEngineCalculate) {
+            gameActivity.showBusyMessage();
             return;
+        }
     }
 
 }
