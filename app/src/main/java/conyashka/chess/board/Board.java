@@ -49,6 +49,27 @@ public class Board extends View {
     private final List<Bitmap> pieceBitmaps;
     private final MediaPlayer mediaPlayer;
     private final GameActivity gameActivity;
+    private final Runnable engineCalculatingTask = new Runnable() {
+        @Override
+        public void run() {
+
+//            Thread.currentThread().setName("Engine Thread " + indexer.getAndIncrement());
+//            Log.i(TAG, "Thread renamed");
+
+            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+
+            //Log.i(TAG, "start move calculating");
+            chessAPI.setEnginePowerfull(2, 1);
+            String move = chessAPI.computerMove();
+            //Log.i(TAG, "move calculating is near end");
+            Message msg = (engineResultHandler.obtainMessage());
+            Bundle bundle = new Bundle();
+            bundle.putString("calculatedMove", move);
+            msg.setData(bundle);
+            engineResultHandler.sendMessage(msg);
+            //Log.i(TAG, "run() ended, move calculated");
+        }
+    };
     public boolean isEngineCalculate = false;
     private boolean playVsComputer = false;
     private boolean playDemo = false;
@@ -73,26 +94,6 @@ public class Board extends View {
             Bundle bundle = msg.getData();
             String calculatedMove = bundle.getString("calculatedMove");
             afterComputerCalc(calculatedMove);
-        }
-    };
-    private final Runnable engineCalculatingTask = new Runnable() {
-        @Override
-        public void run() {
-
-//            Thread.currentThread().setName("Engine Thread " + indexer.getAndIncrement());
-//            Log.i(TAG, "Thread renamed");
-
-            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-
-            //Log.i(TAG, "start move calculating");
-            String move = chessAPI.computerMove();
-            //Log.i(TAG, "move calculating is near end");
-            Message msg = (engineResultHandler.obtainMessage());
-            Bundle bundle = new Bundle();
-            bundle.putString("calculatedMove", move);
-            msg.setData(bundle);
-            engineResultHandler.sendMessage(msg);
-            //Log.i(TAG, "run() ended, move calculated");
         }
     };
 
